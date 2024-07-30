@@ -1,4 +1,4 @@
-#version 460
+#version 330
 #include "/common.glsl"
 
 // Atlases or maps based on UV data

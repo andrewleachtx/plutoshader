@@ -1,4 +1,4 @@
-#version 460
+#version 330
 #include "common.glsl"
 #include "defines.glsl"
 
@@ -32,6 +32,8 @@ void main() {
     vec3 vaPosChunk = vaPosition + chunkOffset;
     gl_Position = P * MV * vec4(vaPosChunk, 1.0);
 
-    vNor = normalize(P * MV * vec4(vaNormal, 0.0)).xyz;
-    vNor = normalize((MVit * vec4(vaNormal, 0.0))).xyz;
+    // Why do we not need to do the inverse transpose like usual?
+    // mat4 MVitt = inverse(transpose(MV));
+    // vNor = normalize(MVitt * vec4(vaNormal, 0.0)).xyz;
+    vNor = normalize(MV * vec4(vaNormal, 0.0)).xyz;
 }

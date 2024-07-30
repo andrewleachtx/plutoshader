@@ -1,4 +1,4 @@
-#version 460
+#version 330
 
 // Atlases or maps based on UV data
 uniform sampler2D gtexture;

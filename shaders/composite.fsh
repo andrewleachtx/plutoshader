@@ -1,6 +1,5 @@
-#version 460
+#version 330
 #include "/common.glsl"
-
 
 // Input from terrain buffer
 uniform sampler2D colortex0;
@@ -11,6 +10,7 @@ const int colortex0Format = RGBA16;
 const int colortex1Format = RGBA16;
 */
 
+// Sun direction from our eye
 uniform vec3 sunPosition;
 
 // outColor0, 1 in gbuffers_terrain.fsh
@@ -28,7 +28,7 @@ void main() {
     vec3 albedo = texture2D(colortex0, texCoords).rgb;
 
     vec3 nor = normalize(texture2D(colortex1, texCoords).rgb * 2.0 - 1.0);
-    float nDotL = max(dot(nor, normalize(sunPosition)), 0.0);
+    float nDotL = max(0.0, dot(nor, normalize(sunPosition)));
 
     vec3 diffuse = albedo * (nDotL + KA);
 
