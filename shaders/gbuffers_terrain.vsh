@@ -20,13 +20,13 @@ in vec4 vaColor; // (r, g, b, a) of a vertex
 
 // Varying
 out vec2 texCoords;
-out vec3 foliageColor;
+out vec3 blockColor;
 out vec2 lightMapCoords; // flags this vertex as something not to use interpolation for in fragment shader
 out vec3 vNor;
 
 void main() {
     texCoords = vaUV0;
-    foliageColor = vaColor.rgb;
+    blockColor = vaColor.rgb;
     lightMapCoords = vaUV2 * (1.0 / 256.0) + (1.0 / 32.0);
 
     vec3 vaPosChunk = vaPosition + chunkOffset;
@@ -35,5 +35,6 @@ void main() {
     // Why do we not need to do the inverse transpose like usual?
     // mat4 MVitt = inverse(transpose(MV));
     // vNor = normalize(MVitt * vec4(vaNormal, 0.0)).xyz;
+
     vNor = normalize(MV * vec4(vaNormal, 0.0)).xyz;
 }
