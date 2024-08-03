@@ -1,4 +1,5 @@
 #version 330
+#include "common.glsl"
 
 // Atlases or maps based on UV data
 uniform sampler2D gtexture;
@@ -9,16 +10,16 @@ uniform sampler2D lightmap;
 layout (location = 0) out vec4 outColor0;
 
 in vec2 texCoords;
-in vec3 foliageColor;
+in vec3 blockColor;
 in vec2 lightMapCoords;
 
 void main() {
     // Get the color of light
-    vec3 lightColor = pow(texture(lightmap, lightMapCoords).rgb, vec3(2.2));
+    vec3 lightColor = pow(texture(lightmap, lightMapCoords).rgb, vec3(GAMMA_CORRECTION));
 
     // Our current color is grayscaled
-    vec4 outputColorTexture = pow(texture(gtexture, texCoords), vec4(2.2));
-    vec3 outputColor = outputColorTexture.rgb * pow(foliageColor, vec3(2.2)) * lightColor;
+    vec4 outputColorTexture = texture(gtexture, texCoords);
+    vec3 outputColor = pow(outputColorTexture.rgb, vec3(GAMMA_CORRECTION)) * pow(blockColor, vec3(GAMMA_CORRECTION)) * lightColor;
     float transparency = outputColorTexture.a;
 
     // Account for transparent values
@@ -26,5 +27,5 @@ void main() {
         discard;
     }
 
-    outColor0 = pow(vec4(outputColor, transparency), vec4(1 / 2.2));
+    outColor0 = vec4(pow(outputColor, vec3(1 / GAMMA_CORRECTION)), texture(gtexture, texCoords).a);
 }
