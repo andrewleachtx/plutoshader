@@ -100,13 +100,18 @@ void main() {
     // gbuffers_terrain has already updated foliage color and light
     vec3 albedo = texture2D(colortex0, texCoords).rgb;
 
+    // Grab shadow information
+    float depth_frag = texture2D(depthtex0, texCoords).x;
+
+    if (depth_frag == 1.0) {
+        outColor0 = vec4(albedo, 1.0);
+        return;
+    }
+
     // Grab lightmap info
     vec2 lightMapCoords = texture2D(colortex2, texCoords).xy;
     vec2 updatedLm = genUpdatedLm(lightMapCoords);
     vec3 lmColor = genLmColor(updatedLm);
-
-    // Grab shadow information
-    float depth_frag = texture2D(depthtex0, texCoords).x;
 
     vec3 nor = normalize(texture2D(colortex1, texCoords).rgb * 2.0 - 1.0);
     float nDotL = max(0.0, dot(nor, normalize(sunPosition)));
@@ -114,10 +119,10 @@ void main() {
     vec3 diffuse = albedo * (lmColor + isShadowed() + nDotL + KA);
     
     // bluer
-    vec3 blueTintDiffuse = vec3(diffuse.r * 0.8, diffuse.g * 0.8, diffuse.b * 1.4);
+    // vec3 blueTintDiffuse = vec3(diffuse.r * 0.8, diffuse.g * 0.8, diffuse.b * 1.4);
 
     // Final 
-    // outColor0 = vec4(diffuse, 1.0);
-    outColor0 = vec4(blueTintDiffuse, 1.0);
+    outColor0 = vec4(diffuse, 1.0);
+    // outColor0 = vec4(blueTintDiffuse, 1.0);
     // outColor0 = vec4(updatedLm, 0.0, 0.0);
 }
