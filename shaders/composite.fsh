@@ -1,5 +1,6 @@
 #version 330 compatibility
 #include /lib/distort.glsl
+#include /lib/util.glsl
 
 uniform float viewWidth;
 uniform float viewHeight;
@@ -31,18 +32,6 @@ const vec3 blocklightColor = vec3(1.0, 0.5, 0.08);
 const vec3 skylightColor = vec3(0.05, 0.15, 0.3);
 const vec3 sunlightColor = vec3(1.0);
 const vec3 ambientColor = vec3(0.1);
-
-vec3 projectAndDivide(mat4 projectionMatrix, vec3 position) {
-    vec4 homPos = projectionMatrix * vec4(position, 1.0);
-    return homPos.xyz / homPos.w;
-}
-
-vec4 getNoise(vec2 coord) {
-    ivec2 screenCoord = ivec2(coord * vec2(viewWidth, viewHeight));
-    ivec2 noiseCoord = screenCoord % 64;
-    return texelFetch(noisetex, noiseCoord, 0);
-}
-
 /*
 - shadowtex0 contains everything that casts a shadow
 - shadowtex1 contains only things which are fully opaque and cast a shadow
@@ -67,13 +56,20 @@ vec3 getShadow(vec3 shadowScreenPos) {
     return shadowColor.rgb * (1.0 - shadowColor.a);
 }
 
+vec4 getNoise(vec2 coord) {
+    ivec2 screenCoord = ivec2(coord * vec2(viewWidth, viewHeight));
+    ivec2 noiseCoord = screenCoord % 64;
+    return texelFetch(noisetex, noiseCoord, 0);
+}
+
 // For each pixel, we can avg over the neighboring pixels' shadow values so borders are averaged
 vec3 getSoftShadow(vec4 shadowClipPos) {
-    const float range = SHADOW_SOFTNESS / 2.0; // how far away from the original position we take our samples from
+    const float range = SHADOW_SOFTNESS * 0.5; // how far away from the original position we take our samples from
     const float increment = range / SHADOW_QUALITY; // distance between each sample
 
     float noise = getNoise(texcoord).r;
 
+    // Random angle (2pi * noise [0, 1])
     float theta = noise * radians(360.0); // random angle using noise value
     float cosTheta = cos(theta);
     float sinTheta = sin(theta);
@@ -82,22 +78,26 @@ vec3 getSoftShadow(vec4 shadowClipPos) {
     mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
 
     vec3 shadowAccum = vec3(0.0); // sum of all shadow samples
-    int samples = 0;
-    
+    float samples = 0.0;
+
+    float invShadowMapResolution = 1.0 / float(shadowMapResolution);
+
     for (float x = -range; x <= range; x += increment) {
         for (float y = -range; y <= range; y+= increment) {
-            vec2 offset = rotation * vec2(x, y) / shadowMapResolution; // we divide by the resolution so our offset is in terms of pixels
+            vec2 offset = rotation * vec2(x, y) * invShadowMapResolution; // we divide by the resolution so our offset is in terms of pixels
             vec4 offsetShadowClipPos = shadowClipPos + vec4(offset, 0.0, 0.0); // add offset
-            offsetShadowClipPos.z -= 0.001; // apply bias
+            offsetShadowClipPos.z -= 0.001; // apply bias // FIXME: If grass or translucent blocks appear weird, reduce this
             offsetShadowClipPos.xyz = distortShadowClipPos(offsetShadowClipPos.xyz); // apply distortion
             vec3 shadowNDCPos = offsetShadowClipPos.xyz / offsetShadowClipPos.w; // convert to NDC space
             vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5; // convert to screen space
             shadowAccum += getShadow(shadowScreenPos); // take shadow sample
+
             samples++;
         }
     }
 
-    return shadowAccum / float(samples); // divide sum by count, getting average shadow
+    // Take the shadow and divide by the number of samples
+    return shadowAccum / samples;
 }
 
 void main() {

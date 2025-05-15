@@ -12,5 +12,4 @@ void main() {
     if (color.a < 0.1){
         discard;
     }
-
 }
