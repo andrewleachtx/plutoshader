@@ -4,6 +4,7 @@
 
 uniform float viewWidth;
 uniform float viewHeight;
+uniform float worldTime;
 
 uniform vec2 screenCoord;
 
@@ -103,7 +104,7 @@ vec3 getSoftShadow(vec4 shadowClipPos) {
 void main() {
     color = texture(colortex0, texcoord);
     color.rgb = pow(color.rgb, vec3(2.2));
-    
+
     // The .r component of the depth texture is the depth from the camera
     float depth = texture(depthtex0, texcoord).r;
     if (depth == 1.0) {
