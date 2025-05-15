@@ -68,8 +68,8 @@ vec3 projectAndDivide(mat4 proj_mat, vec3 pos) {
 }
 
 // Compare closest fragment to sun (shadow buffer) to current fragment to sun. If the cur_frag is more negative than the depth_frag, you are shadowed
-// The shadowtex stores it in shadowScreenPos
-float isShadowed(void) {
+// The shadowtex stores it in shadowScreenPos, so we need to move it there. This function returns 0.0 (shadowed) or 1.0 (unshadowed)
+float getShadow(float depth) {
     // Our goal is to get to from "player" screen space to "shadow" clip space.
     /*
         screen space = vec3(texCoords, texture2D(depthtex0, texCoords).x)
@@ -82,7 +82,7 @@ float isShadowed(void) {
         shadow screen space = shadow ndc * 0.5 + 0.5
     */
 
-    vec3 screen_pos = vec3(texCoords, texture2D(depthtex0, texCoords).x);
+    vec3 screen_pos = vec3(texCoords, depth);
     vec3 ndc_pos = screen_pos * 2.0 - 1.0;
     vec3 view_pos = projectAndDivide(gbufferProjectionInverse, ndc_pos); // w is < 1 right now, so to undo the perspective divide we divide and bring the xyz back up
 
@@ -93,7 +93,12 @@ float isShadowed(void) {
     vec3 shadow_screen_pos = shadow_ndc_pos * 0.5 + 0.5;
 
     // The fragment has a depth in shadow_screen_pos and the shadow map is in shadowtex0 wherever the u, v coords we stored earlier are
-    return step(shadow_screen_pos.z - 0.001, texture2D(shadowtex0, shadow_screen_pos.xy).r);
+    // If the fragment is closer to the light than what the shadow buffer says it sees at the same spot, it is shadowed; 0.0 light influence
+    if (shadow_screen_pos.z - 0.0001 > texture2D(shadowtex0, shadow_screen_pos.xy).r) {
+        return 0.0;
+    }
+
+    return 1.0;
 }
 
 void main() {
@@ -116,7 +121,8 @@ void main() {
     vec3 nor = normalize(texture2D(colortex1, texCoords).rgb * 2.0 - 1.0);
     float nDotL = max(0.0, dot(nor, normalize(sunPosition)));
 
-    vec3 diffuse = albedo * (lmColor + isShadowed() + nDotL + KA);
+    // Should be < 1.0
+    vec3 diffuse = albedo * (lmColor + (SHADOW_STRENGTH * getShadow(depth_frag)) + nDotL + KA);
     
     // bluer
     // vec3 blueTintDiffuse = vec3(diffuse.r * 0.8, diffuse.g * 0.8, diffuse.b * 1.4);
